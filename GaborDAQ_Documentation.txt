@@ -52,9 +52,15 @@ are described below
 
 v1.x	Has basic functionality for labview scripts and the magnet control, uses the DAQ card through a LabVIEW 
 		script, rather than directly.
+
+v1.0	Talks to the Card and the temperature controller through LabVIEW, can only display and write magnet
+		data.
 		
-v2.x	Has basic functionality for labview scripts and the magnet control, talks to the DAQ card directly and 
-		feeds data into LabVIEW scripts for processing
+v2.x	Has basic functionality for labview scripts and the magnet control, talks to the DAQ card directly and
+		processes the data through in python
+		
+v2.0	Can talk to the DAQ card directly and display data using python. Uses LabVIEW script to talk to the
+		temperature controller and can only display and write magnet data
 
 #### Module Descriptions ####
 NAME_DAQ_v0.0.pyw	- Main file, Different versions can be branched
