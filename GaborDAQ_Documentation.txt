@@ -1,0 +1,122 @@
+# GaborDAQ_Documentation
+#
+# Documentation for the GaborDAQ system
+#
+# Last updated: August 2014 by Trevor Arp
+#
+# Gabor Lab
+# University of California, Riverside
+# All Rights Reserved
+
+#### General Comments on Design ####
+
+In general the DAQ is designed to be extremely modular, with nearly all functions and classes defined 
+in separate modules (see Module Descriptions below). The code in these modules is then called by the
+main DAQ file (i.e. NAME_DAQ_v0.0) which defines the overall execution of the program and can be modified and branched into
+versions without having to re-invent most of the base functions. In addition the code is meant to be
+portable and extensible, allowing for it in different ways and for different experiments
+
+All global variables and default parameters are to be defined in the parameters.py file which will be 
+written out for each data run to ensure repeatability. In addition run should write out the starting 
+experimental parameters as well as changes to experimental parameters to ensure repeatability
+
+Text written out to the terminal should be written out to file for error logging and development purposes
+
+Data from the card can be written into multiple data queues in order to facilitate multi-functionality.
+For example there may be a data writing queue and a display queue for the same set of data
+
+Features:
+
+- Writes down parameters used for a run, including active changes
+- Writes out data with common file names, run numbers
+- Handles timing and makes synchronized timestamps
+- Ability to read directly from Data Acquisition hardware through NIDAQ
+- The ability to talk over serial to the magnet controller, possible other serial equipment
+- The ability to call and interact with LabVIEW virtual instruments
+
+#### A Note on threading #####
+
+This program runs on multiple threads, for example the GUI and NIDAQ code operates in threads other
+than the main thread. However LabVIEW doesn't want to be called from multiple threads and will throw
+a 'The application called an interface that was marshalled for a different thread.' or 'CoInitialize' 
+errors if called from multiple threads. 
+
+Therefore all code interacting with LabVIEW should run in the main thread, if you want to
+have something in a different thread talk to LabVIEW (for example, the GUI has a button that changes
+something in the LabVIEW program) the thread should pass a command into a shared Queue, which is dequeued
+in the main thread such that all code actually calling LabVIEW is executed in the main thread. 
+
+#### Version Information ####
+The main DAQ file has been branched into different versions, to provide different functionality, the versions
+are described below
+
+v1.x	Has basic functionality for labview scripts and the magnet control, uses the DAQ card through a LabVIEW 
+		script, rather than directly.
+		
+v2.x	Has basic functionality for labview scripts and the magnet control, talks to the DAQ card directly and 
+		feeds data into LabVIEW scripts for processing
+
+#### Module Descriptions ####
+NAME_DAQ_v0.0.pyw	- Main file, Different versions can be branched
+gui.py 				- Graphical user interfaces (non-LabVIEW)
+nidaq.py 			- For talking to National Instruments hardware
+utilities.py   		- DAQ Utilities
+parameters.py  		- Current DAQ parameters
+labview.py 			- Functions for interfacing with LabVIEW
+serialcom.py 		- Functions for communicating with instruments via serial
+
+#### Data Files Key ####
+Data file names of the form %year_%month_%day_%run_%type.%ext
+Where %year_%month_%day is the date when the run was started
+Where %type is the data type, a four letter abbreviation for the origin of the data.
+Where %run is the run number, starting from zero 
+Where %ext is the file extension
+
+Data Types:
+bnc : Electrical (voltage) data from the BNC coupled DAQ card
+	  Data format is: time	ai1		ai2	...	ain for reading analog inputs 1 through n
+	  
+tmp : Temperature Data from Lakeshore 336 Temperature Controller
+	  Data format is: time	TemperatureA	TemperatureB	TemperatureC	TemperatureD
+	  
+mag : Magnet Data from Lakeshore 625 Superconducting Magnet Power Supply
+	  Data format is: time	current(A)	voltage(V)	field(T)
+	  
+rfi : Reflection image data
+
+pci : photocurrent image data
+
+log : Parameter and setpoint log
+
+#### Timing ####
+Timing is based off of two sources, depending on the data type. For the data coming 
+off of the DAQ card, which could potentially be very fast and time resolved, will be 
+based on cycles of the DAQ. For data originating from peripherals, such as the 
+temperature and magnet controller, which may not be fully real time anyway, on a python 
+stopwatch that runs off the system time. The stopwatch will be synchronized with the
+card time upon initialization.
+
+#### Integrating a LabVIEW VI ####
+To use a LabVIEW VI 
+
+1) Add the VI to the subdirectory LabVIEW
+
+2) Add the path to the VI to the parameters file under the comment '# LabVIEW Virtual Instrument Paths'
+
+3) Create a run script containing the following code
+
+import win32com.client
+labview = win32com.client.Dispatch("Labview.Application")
+f = %filename
+VI = labview.getvireference(f)
+VI.run
+
+Then add the path to the run script to the parameters under the comment '# LabVIEW Run Script Paths'. 
+
+4) Then you use the classes in labview.py to interface with the VI, passing in the paths as parameters
+
+#### Code conventions ####
+- 4 spaces for indent
+- All Classes, functions must have a comment
+- Important variables with descriptive names, lower case, spaced with underscores
+  for example dummy_variable, except for GUI code where a different convention applies
